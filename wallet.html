@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MetaMask Wallet Connect</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@latest/dist/ethers.umd.min.js"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white shadow sticky top-0 z-50">
+    <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+        DEX Exchange
+      </h1>
+      <button id="connect-wallet"
+        class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:scale-105 transition duration-300">
+        Connect Wallet
+      </button>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-6 py-12 text-center">
+    <h2 class="text-4xl font-bold">Welcome to DEX</h2>
+    <p class="mt-4 text-gray-600">Connect your wallet to start trading cryptocurrencies seamlessly.</p>
+    
+    <div id="wallet-address" class="mt-6 text-lg font-semibold text-blue-600"></div>
+    <div id="wallet-balance" class="mt-2 text-md text-gray-800"></div>
+
+    <div class="mt-10 bg-white shadow-lg p-6 rounded-lg max-w-xl mx-auto">
+      <h3 class="text-xl font-semibold mb-4">Send ETH</h3>
+      <input type="text" id="send-to" placeholder="Recipient Address"
+        class="w-full px-4 py-2 border border-gray-300 rounded mb-4" />
+      <input type="number" id="send-amount" placeholder="Amount in ETH"
+        class="w-full px-4 py-2 border border-gray-300 rounded mb-4" />
+      <button id="send-btn"
+        class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Send ETH</button>
+      <div id="tx-status" class="mt-4 text-sm text-gray-600"></div>
+    </div>
+  </main>
+
+  <script>
+    const connectWalletButton = document.getElementById('connect-wallet');
+    const walletAddressDiv = document.getElementById('wallet-address');
+    const walletBalanceDiv = document.getElementById('wallet-balance');
+    const sendButton = document.getElementById('send-btn');
+    const sendToInput = document.getElementById('send-to');
+    const sendAmountInput = document.getElementById('send-amount');
+    const txStatus = document.getElementById('tx-status');
+
+    let provider;
+    let signer;
+    let userAddress;
+
+    async function connectWallet() {
+      if (window.ethereum) {
+        try {
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          userAddress = accounts[0];
+          provider = new ethers.providers.Web3Provider(window.ethereum);
+          signer = provider.getSigner();
+
+          walletAddressDiv.textContent = `Connected Wallet: ${userAddress}`;
+          connectWalletButton.textContent = 'Wallet Connected';
+          connectWalletButton.disabled = true;
+          connectWalletButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+
+          getBalance();
+        } catch (error) {
+          console.error('Connection failed:', error);
+          alert('Failed to connect wallet. Please try again.');
+        }
+      } else {
+        alert('No Ethereum wallet detected. Please install MetaMask!');
+      }
+    }
+
+    async function getBalance() {
+      if (provider && userAddress) {
+        const balance = await provider.getBalance(userAddress);
+        const ethBalance = ethers.utils.formatEther(balance);
+        walletBalanceDiv.textContent = `Balance: ${ethBalance} ETH`;
+      }
+    }
+
+    async function sendETH() {
+      const recipient = sendToInput.value;
+      const amount = sendAmountInput.value;
+
+      if (!recipient || !amount) {
+        alert('Please enter recipient and amount.');
+        return;
+      }
+
+      try {
+        const tx = await signer.sendTransaction({
+          to: recipient,
+          value: ethers.utils.parseEther(amount)
+        });
+
+        txStatus.textContent = 'Transaction sent. Waiting for confirmation...';
+        await tx.wait();
+        txStatus.textContent = 'Transaction confirmed!';
+        getBalance();
+      } catch (error) {
+        console.error(error);
+        txStatus.textContent = 'Transaction failed.';
+      }
+    }
+
+    connectWalletButton.addEventListener('click', connectWallet);
+    sendButton.addEventListener('click', sendETH);
+  </script>
+</body>
+
+</html>
